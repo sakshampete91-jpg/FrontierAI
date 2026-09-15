@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>FrontierAI</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #0b0d10;
+            --panel: #11151a;
+            --panel-2: #171c22;
+            --border: #252b33;
+            --text: #f5f7fa;
+            --muted: #8d96a3;
+            --accent: #3d7cff;
+            --accent-hover: #5a91ff;
+            --danger: #ff6b6b;
+            --success: #55d98b;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            font-family:
+                Inter,
+                "Segoe UI",
+                Arial,
+                sans-serif;
+        }
+
+        .app {
+            width: min(1050px, 94%);
+            min-height: 100vh;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            padding: 26px 0 18px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .brand-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .brand {
+            font-size: 29px;
+            font-weight: 800;
+            letter-spacing: -0.8px;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 11px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--panel);
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .subtitle {
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        #chat {
+            flex: 1;
+            padding: 28px 0;
+            overflow-y: auto;
+        }
+
+        .message {
+            max-width: 84%;
+            margin-bottom: 18px;
+            padding: 15px 17px;
+            border-radius: 15px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .user {
+            margin-left: auto;
+            background: var(--accent);
+        }
+
+        .assistant {
+            margin-right: auto;
+            background: var(--panel);
+            border: 1px solid var(--border);
+        }
+
+        .message.error {
+            border-color: rgba(255, 107, 107, 0.35);
+        }
+
+        .meta {
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .thinking {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+        }
+
+        .dots {
+            display: inline-flex;
+            gap: 4px;
+        }
+
+        .dots span {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--muted);
+            animation: pulse 1.2s infinite;
+        }
+
+        .dots span:nth-child(2) {
+            animation-delay: 0.15s;
+        }
+
+        .dots span:nth-child(3) {
+            animation-delay: 0.30s;
+        }
+
+        @keyframes pulse {
+            0%, 80%, 100% {
+                opacity: 0.25;
+            }
+
+            40% {
+                opacity: 1;
+            }
+        }
+
+        .sources {
+            margin-top: 13px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .sources-title {
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 9px;
+        }
+
+        .source {
+            margin-top: 8px;
+            padding: 9px 10px;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            background: var(--panel-2);
+        }
+
+        .source a {
+            color: #78a9ff;
+            text-decoration: none;
+            font-size: 13px;
+        }
+
+        .source a:hover {
+            text-decoration: underline;
+        }
+
+        .source-status {
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .composer {
+            position: sticky;
+            bottom: 0;
+            padding: 16px 0 24px;
+            background:
+                linear-gradient(
+                    transparent,
+                    var(--bg) 22%
+                );
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        textarea {
+            flex: 1;
+            min-height: 54px;
+            max-height: 180px;
+            resize: none;
+            padding: 15px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            outline: none;
+            background: var(--panel);
+            color: var(--text);
+            font: inherit;
+        }
+
+        textarea::placeholder {
+            color: #68717d;
+        }
+
+        textarea:focus {
+            border-color: var(--accent);
+        }
+
+        button {
+            width: 110px;
+            border: 0;
+            border-radius: 14px;
+            background: var(--accent);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            transition:
+                background 0.15s ease,
+                transform 0.15s ease;
+        }
+
+        button:hover:not(:disabled) {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .footer-status {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 9px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .footer-status .right {
+            text-align: right;
+        }
+
+        @media (max-width: 650px) {
+            .message {
+                max-width: 94%;
+            }
+
+            .input-row {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+                height: 50px;
+            }
+
+            .footer-status {
+                flex-direction: column;
+            }
+
+            .footer-status .right {
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="app">
+
+    <header>
+        <div class="brand-row">
+
+            <div class="brand">
+                FrontierAI
+            </div>
+
+            <div class="status-pill">
+                <span class="status-dot"></span>
+                Local
+            </div>
+
+        </div>
+
+        <div class="subtitle">
+            Research, reasoning and tools — running locally
+        </div>
+    </header>
+
+    <main id="chat"></main>
+
+    <div class="composer">
+
+        <div class="input-row">
+
+            <textarea
+                id="message"
+                rows="1"
+                placeholder="Ask FrontierAI anything..."
+                autocomplete="off"
+            ></textarea>
+
+            <button
+                id="send"
+                type="button"
+                onclick="sendMessage()"
+            >
+                Send
+            </button>
+
+        </div>
+
+        <div class="footer-status">
+            <span id="status">
+                Ready
+            </span>
+
+            <span
+                id="timer"
+                class="right"
+            >
+                —
+            </span>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+    const chat =
+        document.getElementById("chat");
+
+    const input =
+        document.getElementById("message");
+
+    const sendButton =
+        document.getElementById("send");
+
+    const status =
+        document.getElementById("status");
+
+    const timer =
+        document.getElementById("timer");
+
+    const conversationId =
+        "web-" +
+        Math.random()
+            .toString(36)
+            .slice(2);
+
+    let timerInterval = null;
+
+    function startTimer() {
+        const startedAt =
+            performance.now();
+
+        timerInterval =
+            setInterval(() => {
+                const elapsed =
+                    (
+                        performance.now()
+                        - startedAt
+                    ) / 1000;
+
+                timer.textContent =
+                    elapsed.toFixed(1) +
+                    "s";
+            }, 100);
+
+        return startedAt;
+    }
+
+    function stopTimer(startedAt) {
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+
+        const elapsed =
+            (
+                performance.now()
+                - startedAt
+            ) / 1000;
+
+        timer.textContent =
+            elapsed.toFixed(1) +
+            "s";
+    }
+
+    function addMessage(
+        role,
+        text,
+        meta = "",
+        extraClass = ""
+    ) {
+        const wrapper =
+            document.createElement(
+                "div"
+            );
+
+        wrapper.className =
+            "message " +
+            role +
+            " " +
+            extraClass;
+
+        const content =
+            document.createElement(
+                "div"
+            );
+
+        content.textContent = text;
+
+        wrapper.appendChild(
+            content
+        );
+
+        if (meta) {
+            const metadata =
+                document.createElement(
+                    "div"
+                );
+
+            metadata.className =
+                "meta";
+
+            metadata.textContent =
+                meta;
+
+            wrapper.appendChild(
+                metadata
+            );
+        }
+
+        chat.appendChild(
+            wrapper
+        );
+
+        chat.scrollTop =
+            chat.scrollHeight;
+
+        return wrapper;
+    }
+
+    function addThinking() {
+        const wrapper =
+            document.createElement(
+                "div"
+            );
+
+        wrapper.className =
+            "message assistant";
+
+        wrapper.id =
+            "thinking-message";
+
+        const content =
+            document.createElement(
+                "div"
+            );
+
+        content.className =
+            "thinking";
+
+        const text =
+            document.createElement(
+                "span"
+            );
+
+        text.textContent =
+            "FrontierAI is thinking";
+
+        const dots =
+            document.createElement(
+                "span"
+            );
+
+        dots.className = "dots";
+
+        for (
+            let i = 0;
+            i < 3;
+            i++
+        ) {
+            const dot =
+                document.createElement(
+                    "span"
+                );
+
+            dots.appendChild(
+                dot
+            );
+        }
+
+        content.appendChild(
+            text
+        );
+
+        content.appendChild(
+            dots
+        );
+
+        wrapper.appendChild(
+            content
+        );
+
+        chat.appendChild(
+            wrapper
+        );
+
+        chat.scrollTop =
+            chat.scrollHeight;
+    }
+
+    function removeThinking() {
+        const thinking =
+            document.getElementById(
+                "thinking-message"
+            );
+
+        if (thinking) {
+            thinking.remove();
+        }
+    }
+
+    function addSources(
+        wrapper,
+        research
+    ) {
+        if (
+            !research ||
+            !research.sources ||
+            !research.sources.length
+        ) {
+            return;
+        }
+
+        const sources =
+            document.createElement(
+                "div"
+            );
+
+        sources.className =
+            "sources";
+
+        const title =
+            document.createElement(
+                "div"
+            );
+
+        title.className =
+            "sources-title";
+
+        title.textContent =
+            "Sources";
+
+        sources.appendChild(
+            title
+        );
+
+        research.sources.forEach(
+            (source) => {
+                const item =
+                    document.createElement(
+                        "div"
+                    );
+
+                item.className =
+                    "source";
+
+                const link =
+                    document.createElement(
+                        "a"
+                    );
+
+                link.href =
+                    source.url;
+
+                link.target =
+                    "_blank";
+
+                link.rel =
+                    "noopener noreferrer";
+
+                link.textContent =
+                    source.title ||
+                    source.url;
+
+                item.appendChild(
+                    link
+                );
+
+                const sourceStatus =
+                    document.createElement(
+                        "div"
+                    );
+
+                sourceStatus.className =
+                    "source-status";
+
+                sourceStatus.textContent =
+                    source.fetch_success
+                        ? "Retrieved"
+                        : "Not fully retrieved";
+
+                item.appendChild(
+                    sourceStatus
+                );
+
+                sources.appendChild(
+                    item
+                );
+            }
+        );
+
+        wrapper.appendChild(
+            sources
+        );
+    }
+
+    async function sendMessage() {
+        const message =
+            input.value.trim();
+
+        if (!message) {
+            return;
+        }
+
+        addMessage(
+            "user",
+            message
+        );
+
+        input.value = "";
+        input.style.height = "auto";
+
+        sendButton.disabled = true;
+
+        status.textContent =
+            "Processing...";
+
+        timer.textContent =
+            "0.0s";
+
+        addThinking();
+
+        const startedAt =
+            startTimer();
+
+        try {
+            const response =
+                await fetch(
+                    "/chat",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+                        body:
+                            JSON.stringify({
+                                message,
+                                conversation_id:
+                                    conversationId
+                            })
+                    }
+                );
+
+            if (!response.ok) {
+                let detail =
+                    "HTTP " +
+                    response.status;
+
+                try {
+                    const errorData =
+                        await response.json();
+
+                    if (
+                        errorData.detail
+                    ) {
+                        detail =
+                            errorData.detail;
+                    }
+                } catch (_) {
+                    // Keep HTTP fallback.
+                }
+
+                throw new Error(
+                    detail
+                );
+            }
+
+            const data =
+                await response.json();
+
+            removeThinking();
+
+            const meta =
+                "Request: " +
+                data.request_id +
+                " • " +
+                "Status: " +
+                data.status +
+                " • " +
+                "Intent: " +
+                data.intent;
+
+            const assistant =
+                addMessage(
+                    "assistant",
+                    data.response ||
+                        "No response returned.",
+                    meta
+                );
+
+            addSources(
+                assistant,
+                data.research
+            );
+
+            status.textContent =
+                "Ready";
+
+        } catch (error) {
+            removeThinking();
+
+            addMessage(
+                "assistant",
+                "I couldn't complete that request.\n\n" +
+                error.message,
+                "",
+                "error"
+            );
+
+            status.textContent =
+                "Request failed";
+
+        } finally {
+            stopTimer(
+                startedAt
+            );
+
+            sendButton.disabled =
+                false;
+
+            input.focus();
+        }
+    }
+
+    input.addEventListener(
+        "keydown",
+        (event) => {
+            if (
+                event.key === "Enter" &&
+                !event.shiftKey
+            ) {
+                event.preventDefault();
+
+                sendMessage();
+            }
+        }
+    );
+
+    input.addEventListener(
+        "input",
+        () => {
+            input.style.height =
+                "auto";
+
+            input.style.height =
+                Math.min(
+                    input.scrollHeight,
+                    180
+                ) + "px";
+        }
+    );
+
+    addMessage(
+        "assistant",
+        "Hi! I'm FrontierAI. Ask me a question to get started."
+    );
+</script>
+
+</body>
+</html>

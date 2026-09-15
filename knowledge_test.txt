@@ -1,0 +1,64 @@
+from app.knowledge.chunk_store import SQLiteKnowledgeChunkStore
+from app.knowledge.ingestion import KnowledgeIngestionService
+from app.knowledge.retriever import KnowledgeRetriever
+from app.knowledge.sqlite import SQLiteKnowledgeStore
+
+
+def main():
+    database_path = "data/test_full_rag.db"
+
+    document_store = SQLiteKnowledgeStore(
+        database_path
+    )
+
+    chunk_store = SQLiteKnowledgeChunkStore(
+        database_path
+    )
+
+    document_store.clear()
+    chunk_store.clear()
+
+    ingestion = KnowledgeIngestionService(
+        document_store=document_store,
+        chunk_store=chunk_store,
+    )
+
+    document = ingestion.ingest_text_file(
+        "knowledge_test.txt",
+        source="local_test_file",
+        metadata={
+            "category": "frontierai",
+        },
+    )
+
+    retriever = KnowledgeRetriever(
+        chunk_store
+    )
+
+    results = retriever.search(
+        "How does FrontierAI use model routing?",
+        limit=3,
+    )
+
+    print("Document:", document.title)
+    print("Retrieved results:", len(results))
+
+    for result in results:
+        print("\nScore:", result.score)
+        print("Content:", result.chunk.content)
+
+    if (
+        results
+        and any(
+            "model router" in result.chunk.content.lower()
+            or "model routing" in result.chunk.content.lower()
+            for result in results
+        )
+    ):
+        print("\nIngested file retrieval: OK")
+    else:
+        print("\nIngested file retrieval: FAILED")
+
+
+if __name__ == "__main__":
+    main()
