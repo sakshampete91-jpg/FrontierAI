@@ -3,121 +3,215 @@ from dataclasses import dataclass
 
 @dataclass
 class IntentResult:
+    """Result produced by the intent understanding layer."""
+
     intent: str
     confidence: float
     reasoning_required: bool
+    complexity: str = "low"
+    tool_required: bool = False
 
 
 class IntentEngine:
-    """Classifies the user's request into a high-level task type."""
+    """
+    FrontierAI intent understanding layer.
 
-    def classify(
-        self,
-        text: str,
-    ) -> IntentResult:
-        text = text.lower().strip()
+    Uses rule-based semantic signals to classify requests without
+    requiring an additional model call. This keeps routing fast
+    while providing richer information to the orchestrator.
+    """
 
-        # -----------------------------------------------------
-        # Research has highest priority when explicitly requested.
-        # This prevents words such as "python", "program", or
-        # "code" inside a research request from forcing coding.
-        # -----------------------------------------------------
-        research_signals = [
-            "research",
-            "investigate",
-            "latest",
-            "recent",
-            "current information",
-            "news",
-            "sources",
-            "citations",
-            "according to",
-            "find information",
-            "look up",
-            "web search",
-            "search the web",
-            "study",
-            "analyze the history",
-            "literature review",
-        ]
+    def classify(self, text: str) -> IntentResult:
+        original = text.strip()
+        normalized = original.lower()
 
-        if any(
-            signal in text
-            for signal in research_signals
-        ):
+        if not normalized:
             return IntentResult(
-                intent="research",
-                confidence=0.95,
-                reasoning_required=True,
+                intent="general",
+                confidence=0.50,
+                reasoning_required=False,
+                complexity="low",
+                tool_required=False,
             )
 
-        # -----------------------------------------------------
-        # Coding
-        # -----------------------------------------------------
         coding_signals = [
+            "write code",
+            "generate code",
             "code",
-            "python",
             "program",
             "programming",
             "debug",
+            "debugging",
+            "fix this code",
+            "python",
             "javascript",
-            "java",
-            "c++",
-            "c#",
+            "typescript",
             "html",
             "css",
+            "api",
             "function",
             "class",
-            "variable",
-            "loop",
+            "script",
             "algorithm",
-            "syntax",
+            "compile",
+            "syntax error",
+            "bug",
         ]
 
-        if any(
-            signal in text
-            for signal in coding_signals
-        ):
-            return IntentResult(
-                intent="coding",
-                confidence=0.95,
-                reasoning_required=True,
-            )
+        research_signals = [
+            "research",
+            "latest",
+            "current",
+            "recent",
+            "news",
+            "investigate",
+            "look up",
+            "find information",
+            "sources",
+            "source",
+            "according to",
+            "compare",
+            "comparison",
+            "pros and cons",
+            "evidence",
+            "what happened",
+            "who is",
+            "what is the latest",
+        ]
 
-        # -----------------------------------------------------
-        # Mathematics
-        # -----------------------------------------------------
-        mathematics_signals = [
+        math_signals = [
             "calculate",
-            "calculation",
+            "calculator",
+            "compute",
             "equation",
-            "math",
-            "mathematics",
             "solve",
+            "mathematical",
+            "math",
             "percentage",
             "percent",
-            "derivative",
-            "integral",
-            "algebra",
-            "geometry",
-            "probability",
+            "average",
+            "sum",
+            "difference",
+            "multiply",
+            "divide",
         ]
 
-        if any(
-            signal in text
-            for signal in mathematics_signals
-        ):
+        tool_signals = [
+            "calculate",
+            "compute",
+            "run",
+            "execute",
+            "search",
+            "look up",
+            "find",
+            "analyze",
+            "convert",
+        ]
+
+        high_complexity_signals = [
+            "build",
+            "develop",
+            "create an application",
+            "architecture",
+            "system design",
+            "full project",
+            "production",
+            "deploy",
+            "investigate",
+            "deep research",
+            "comprehensive",
+            "analyze deeply",
+        ]
+
+        coding_score = self._score(
+            normalized,
+            coding_signals,
+        )
+
+        research_score = self._score(
+            normalized,
+            research_signals,
+        )
+
+        math_score = self._score(
+            normalized,
+            math_signals,
+        )
+
+        tool_required = self._contains_any(
+            normalized,
+            tool_signals,
+        )
+
+        high_complexity = self._contains_any(
+            normalized,
+            high_complexity_signals,
+        )
+
+        # Explicit mathematical requests take priority.
+        if math_score > 0:
+            complexity = "high" if high_complexity else "medium"
+
             return IntentResult(
                 intent="mathematics",
-                confidence=0.95,
+                confidence=min(0.99, 0.80 + math_score * 0.05),
                 reasoning_required=True,
+                complexity=complexity,
+                tool_required=True,
             )
 
-        # -----------------------------------------------------
-        # General
-        # -----------------------------------------------------
+        # Research language should take priority over generic
+        # programming words when the user explicitly asks for
+        # current information, sources, or investigation.
+        if research_score > 0:
+            complexity = "high" if high_complexity else "medium"
+
+            return IntentResult(
+                intent="research",
+                confidence=min(0.98, 0.78 + research_score * 0.04),
+                reasoning_required=True,
+                complexity=complexity,
+                tool_required=True,
+            )
+
+        if coding_score > 0:
+            complexity = "high" if high_complexity else "medium"
+
+            return IntentResult(
+                intent="coding",
+                confidence=min(0.98, 0.80 + coding_score * 0.04),
+                reasoning_required=True,
+                complexity=complexity,
+                tool_required=tool_required,
+            )
+
+        complexity = "high" if high_complexity else "low"
+
         return IntentResult(
             intent="general",
             confidence=0.70,
             reasoning_required=False,
+            complexity=complexity,
+            tool_required=tool_required,
+        )
+
+    def _score(
+        self,
+        text: str,
+        signals: list[str],
+    ) -> int:
+        return sum(
+            1
+            for signal in signals
+            if signal in text
+        )
+
+    def _contains_any(
+        self,
+        text: str,
+        signals: list[str],
+    ) -> bool:
+        return any(
+            signal in text
+            for signal in signals
         )
