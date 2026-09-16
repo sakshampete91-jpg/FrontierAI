@@ -1,1 +1,7 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
 google-genai
+ollama
+PyMuPDF
