@@ -15,18 +15,44 @@ class CodingResult:
 
 class CodingSpecialist:
     """
-    Handles coding-oriented requests.
+    Coding specialist for FrontierAI.
 
-    The specialist prepares structured instructions for the model
-    and identifies whether the request may require code execution
-    or verification.
+    Compatible with the SpecialistRegistry interface.
     """
 
-    def analyze(self, user_input: str) -> CodingResult:
+    name = "coding"
+
+    def __init__(
+        self,
+        model_gateway: Any | None = None,
+    ) -> None:
+        self.model_gateway = model_gateway
+
+    async def handle(
+        self,
+        user_input: str,
+        context: dict[str, Any] | None = None,
+    ) -> str:
+        """
+        Handle a coding request through the specialist interface.
+        """
+
+        result = self.analyze(user_input)
+
+        return result.response
+
+    def analyze(
+        self,
+        user_input: str,
+    ) -> CodingResult:
+        """Analyze a coding request."""
+
         text = user_input.strip()
         normalized = text.lower()
 
-        language = self._detect_language(normalized)
+        language = self._detect_language(
+            normalized
+        )
 
         requires_execution = any(
             phrase in normalized
@@ -36,10 +62,9 @@ class CodingSpecialist:
                 "test this",
                 "run the code",
                 "execute the code",
+                "run this code",
             ]
         )
-
-        requires_verification = True
 
         instructions = [
             "Act as FrontierAI's coding specialist.",
@@ -58,9 +83,9 @@ class CodingSpecialist:
 
         if requires_execution:
             instructions.append(
-                "The user appears to want execution or testing. "
-                "Only report execution results if a real execution tool "
-                "is available and has actually been used."
+                "The user appears to want code execution or testing. "
+                "Only report execution results if an actual execution "
+                "tool has been used."
             )
 
         response = "\n".join(
@@ -72,14 +97,22 @@ class CodingSpecialist:
             response=response,
             language=language,
             requires_execution=requires_execution,
-            requires_verification=requires_verification,
+            requires_verification=True,
             metadata={
-                "specialist": "coding",
+                "specialist": self.name,
                 "input_length": len(text),
+                "gateway_available": (
+                    self.model_gateway is not None
+                ),
             },
         )
 
-    def _detect_language(self, text: str) -> str | None:
+    def _detect_language(
+        self,
+        text: str,
+    ) -> str | None:
+        """Detect the likely programming language."""
+
         language_signals = {
             "python": [
                 "python",
@@ -91,13 +124,11 @@ class CodingSpecialist:
             ],
             "javascript": [
                 "javascript",
-                "js",
                 "node",
                 "nodejs",
             ],
             "typescript": [
                 "typescript",
-                "ts",
             ],
             "html": [
                 "html",
@@ -122,7 +153,10 @@ class CodingSpecialist:
         }
 
         for language, signals in language_signals.items():
-            if any(signal in text for signal in signals):
+            if any(
+                signal in text
+                for signal in signals
+            ):
                 return language
 
         return None

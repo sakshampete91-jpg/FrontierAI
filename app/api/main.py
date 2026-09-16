@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
@@ -19,6 +20,7 @@ app = FastAPI(
     version="1.0.0",
     description="Local AI assistant API.",
 )
+
 
 orchestrator = create_orchestrator()
 
@@ -61,27 +63,36 @@ async def health() -> dict[str, str]:
 async def chat(
     request: ChatRequest,
 ) -> ChatResponse:
+
+    # Generate a unique ID for this API request.
+    request_id = str(uuid4())
+
     result = await orchestrator.process(
         request.message,
         conversation_id=request.conversation_id,
     )
 
     return ChatResponse(
-        request_id=result["request_id"],
+        request_id=request_id,
+
         response=result.get(
             "response"
         ),
+
         intent=result.get(
             "intent",
             "unknown",
         ),
+
         status=result.get(
             "status",
             "unknown",
         ),
+
         research=result.get(
             "research"
         ),
+
         trace=result.get(
             "trace"
         ),
