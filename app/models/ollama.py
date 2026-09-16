@@ -6,13 +6,13 @@ from app.models.base import ModelProvider
 
 class OllamaProvider(ModelProvider):
     """
-    AI provider used by CHOKO.
+    CHOKO AI provider.
 
     AI_PROVIDER=gemini
-        Uses Google Gemini Interactions API.
+        Uses Google Gemini.
 
     AI_PROVIDER=ollama
-        Uses local Ollama/Qwen3.
+        Uses local Ollama / Qwen3.
     """
 
     def __init__(
@@ -20,15 +20,10 @@ class OllamaProvider(ModelProvider):
         model: str | None = None,
         host: str | None = None,
     ) -> None:
-
         self.model = model
         self.host = host
 
-        self.provider = (
-            settings.ai_provider
-            .strip()
-            .lower()
-        )
+        self.provider = settings.ai_provider.strip().lower()
 
         self._ollama_client = None
         self._gemini_client = None
@@ -45,9 +40,14 @@ class OllamaProvider(ModelProvider):
                 **kwargs,
             )
 
-        return await self._generate_ollama(
-            messages,
-            **kwargs,
+        if self.provider == "ollama":
+            return await self._generate_ollama(
+                messages,
+                **kwargs,
+            )
+
+        raise RuntimeError(
+            f"Unsupported AI_PROVIDER: {self.provider}"
         )
 
     async def _generate_gemini(
@@ -69,21 +69,12 @@ class OllamaProvider(ModelProvider):
             )
 
         system_instruction = None
-        interaction_input = []
+        interaction_input: list[dict[str, Any]] = []
 
         for message in messages:
 
-            role = message.get(
-                "role",
-                "user",
-            )
-
-            content = str(
-                message.get(
-                    "content",
-                    "",
-                )
-            )
+            role = message.get("role", "user")
+            content = str(message.get("content", ""))
 
             if not content.strip():
                 continue
@@ -125,23 +116,28 @@ class OllamaProvider(ModelProvider):
                     }
                 )
 
+        # IMPORTANT:
+        # Gemini mode ALWAYS uses the Gemini model.
+        # Never use self.model here because that could
+        # accidentally contain the Ollama model qwen3:8b.
+
+        gemini_model = settings.gemini_model.strip()
+
+        if not gemini_model.startswith("gemini-"):
+            raise RuntimeError(
+                f"Invalid GEMINI_MODEL: {gemini_model}"
+            )
+
         create_args: dict[str, Any] = {
-            "model": (
-                self.model
-                or settings.gemini_model
-            ),
+            "model": gemini_model,
             "input": interaction_input,
         }
 
         if system_instruction:
-            create_args["system_instruction"] = (
-                system_instruction
-            )
+            create_args["system_instruction"] = system_instruction
 
-        interaction = (
-            await self._gemini_client.aio.interactions.create(
-                **create_args
-            )
+        interaction = await self._gemini_client.aio.interactions.create(
+            **create_args
         )
 
         text = interaction.output_text
@@ -162,19 +158,17 @@ class OllamaProvider(ModelProvider):
         from ollama import AsyncClient
 
         if self._ollama_client is None:
-
             self._ollama_client = AsyncClient(
-                host=(
-                    self.host
-                    or settings.ollama_host
-                )
+                host=self.host or settings.ollama_host
             )
 
+        ollama_model = (
+            self.model
+            or settings.ollama_model
+        )
+
         response = await self._ollama_client.chat(
-            model=(
-                self.model
-                or settings.ollama_model
-            ),
+            model=ollama_model,
             messages=messages,
             **kwargs,
         )
