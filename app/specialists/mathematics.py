@@ -24,7 +24,7 @@ class MathematicsSpecialist(Specialist):
     ) -> str:
         messages = self.context_builder.build_messages(
             system_instruction=(
-                "You are FrontierAI's mathematics specialist. "
+                "You are CHOKO's mathematics specialist. "
                 "Solve mathematical problems carefully and "
                 "explain the reasoning clearly. "
                 "Use relevant conversation memory when provided. "

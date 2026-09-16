@@ -15,7 +15,7 @@ class CodingResult:
 
 class CodingSpecialist:
     """
-    Coding specialist for FrontierAI.
+    Coding specialist for CHOKO.
 
     Compatible with the SpecialistRegistry interface.
     """
@@ -67,7 +67,7 @@ class CodingSpecialist:
         )
 
         instructions = [
-            "Act as FrontierAI's coding specialist.",
+            "Act as CHOKO's coding specialist.",
             "Understand the programming task before answering.",
             "Provide correct, runnable code when code is requested.",
             "Prefer simple and maintainable solutions.",

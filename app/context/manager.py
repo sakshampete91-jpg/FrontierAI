@@ -46,7 +46,7 @@ class ContextManager:
         )[: self.max_knowledge_items]
 
         system_message = (
-            "You are FrontierAI, a helpful local AI assistant. "
+            "You are CHOKO, a helpful AI assistant. "
             "Answer accurately and clearly. "
             "Use relevant conversation memory and knowledge when provided. "
             "Treat memory and retrieved knowledge as contextual information, "

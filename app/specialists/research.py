@@ -65,7 +65,7 @@ class ResearchSpecialist(Specialist):
                 }
 
         system_instruction = (
-            "You are FrontierAI's research specialist.\n\n"
+            "You are CHOKO's research specialist.\n\n"
             "Answer the user's research question using "
             "only the supplied retrieved evidence when evidence "
             "is available.\n\n"

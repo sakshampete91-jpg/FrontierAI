@@ -14,7 +14,7 @@ from app.verification.engine import VerificationEngine
 
 @dataclass
 class TaskContext:
-    """Information carried through the FrontierAI pipeline."""
+    """Information carried through the CHOKO pipeline."""
 
     user_input: str
 
@@ -36,7 +36,7 @@ class TaskContext:
 
 class MasterOrchestrator:
     """
-    Central coordinator for FrontierAI.
+    Central coordinator for CHOKO.
 
     Pipeline:
 
@@ -290,8 +290,14 @@ class MasterOrchestrator:
         if context.response is None:
 
             system_prompt = (
-                "You are FrontierAI, a helpful local "
-                "AI assistant.\n\n"
+                "You are CHOKO, a helpful AI assistant.\n\n"
+                "Your name is CHOKO.\n"
+                "If the user asks your name, identify yourself "
+                "as CHOKO.\n"
+                "Do not identify yourself as FrontierAI.\n"
+                "Do not mention FrontierAI unless the user "
+                "specifically asks about the project's old "
+                "or internal name.\n\n"
                 "Follow the user's request accurately.\n"
                 "Use relevant conversation memory when "
                 "provided.\n"
@@ -496,7 +502,7 @@ class MasterOrchestrator:
         Safely obtain context from the ContextManager.
 
         Supports common async/sync context-manager interfaces
-        without forcing the rest of FrontierAI to depend on
+        without forcing the rest of CHOKO to depend on
         one specific implementation.
         """
 
